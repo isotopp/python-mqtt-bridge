@@ -1,0 +1,6 @@
+wheel
+pre-commit
+mypy
+black
+paho-mqtt
+influxdb
