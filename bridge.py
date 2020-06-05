@@ -27,7 +27,7 @@ influx = None
 MQTT_ADDRESS = "192.168.1.10"
 MQTT_USER = "mqttuser"
 MQTT_PASSWORD = "mqttpassword"
-MQTT_CLIENT_ID = "Testclient"
+MQTT_CLIENT_ID = "MQTT2InfluxBridge2"
 
 
 class MyUserdata:
