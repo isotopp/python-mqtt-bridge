@@ -6,25 +6,19 @@ This script receives MQTT data and saves those to InfluxDB.
 
 """
 
-import os
-import sys
-import re
-from typing import List, Dict, Optional, Any
-
 import paho.mqtt.client as mqtt  # type: ignore
 from influxdb import InfluxDBClient  # type: ignore
-
-from datetime import datetime
 import json
+from time import sleep
 
-INFLUXDB_ADDRESS = "192.168.1.10"
+INFLUXDB_ADDRESS = "influxdb"
 INFLUXDB_USER = "root"
 INFLUXDB_PASSWORD = "root"
 INFLUXDB_DATABASE = "home_db"
 
 influx = None
 
-MQTT_ADDRESS = "192.168.1.10"
+MQTT_ADDRESS = "mosquitto"
 MQTT_USER = "mqttuser"
 MQTT_PASSWORD = "mqttpassword"
 MQTT_CLIENT_ID = "MQTT2InfluxBridge2"
@@ -133,6 +127,7 @@ def on_connect(client, userdata, flags, rc):
 
 
 def main():
+    sleep(3)
     influx = influx_init()
 
     mqtt_client = mqtt.Client(client_id=MQTT_CLIENT_ID, userdata=MyUserdata(influx))
