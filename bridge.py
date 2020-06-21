@@ -27,8 +27,19 @@ MQTT_CLIENT_ID = "MQTT2InfluxBridge2"
 class MyUserdata:
     def __init__(self, influx):
         self.influx = influx
+        self.device = ""
+        self.tail = ""
+        self.payload = ""
+        self.writepoints = ""
+
+    def __str__(self):
+        return f"MyUserData: device = {device} tail = {tail} payload = {payload} writepoints = {writepoints}"
 
     def _generic_message(self, measurement, device, tail, payload):
+        self.device = device
+        self.tail = tail
+        self.payload = payload
+
         fields = {}
         for i in payload:
             try:
@@ -43,6 +54,7 @@ class MyUserdata:
                 "fields": fields,
             }
         ]
+        self.writepoints = json_body
         self.influx.write_points(json_body)
 
     def house_message(self, device, tail, payload):
@@ -51,6 +63,9 @@ class MyUserdata:
 
     def zigbee2mqtt_message(self, device, tail, payload):
         self._generic_message("temp", device, tail, payload)
+
+    def mijia_message(self, device, tail, payload):
+        self._generic_message("mijia", device, tail, payload)
 
     def on_message(self, client, userdata, msg):
         """ Handle message passed on from on_message callback.
@@ -61,6 +76,7 @@ class MyUserdata:
         We pass on the entire thing according to the registered routes.
 
         """
+        print(f"topic = {msg.topic}")
         route, device, tail = msg.topic.split(sep="/", maxsplit=2)
         payload = json.loads(msg.payload.decode("utf-8"))
 
@@ -68,6 +84,8 @@ class MyUserdata:
             self.house_message(device, tail, payload)
         elif route == "zigbee2mqtt":
             self.zigbee2mqtt_message(device, tail, payload)
+        elif route == "mijia":
+            self.mijia_message(device, tail, payload)
         else:
             raise (f"unhandled route {route}: {msg.topic} = {payload}")
 
@@ -111,8 +129,9 @@ def influx_setup_database(influx):
 
 def on_log(client, userdata, level, buf):
     """ mqtt log callback """
+    print(f"on_log: {userdata}")
     if level in (mqtt.MQTT_LOG_ERR, mqtt.MQTT_LOG_WARNING):
-        print(f"log: {level} {buf}")
+        print(f"on_log: {level} {buf}")
 
 
 def on_message(client, userdata, msg):
@@ -121,9 +140,10 @@ def on_message(client, userdata, msg):
 
 
 def on_connect(client, userdata, flags, rc):
-    print(f"rc = {rc} flags = {flags}")
+    print(f"on_connect: rc = {rc} flags = {flags}")
     client.subscribe("house/+/tele/SENSOR")
     client.subscribe("zigbee2mqtt/+/SENSOR")
+    client.subscribe("mijia/+/SENSOR")
 
 
 def main():
