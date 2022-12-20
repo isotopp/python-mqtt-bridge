@@ -33,7 +33,7 @@ class MyUserdata:
         self.writepoints = ""
 
     def __str__(self):
-        return f"MyUserData: device = {device} tail = {tail} payload = {payload} writepoints = {writepoints}"
+        return f"MyUserData: device = {self.device} tail = {self.tail} payload = {self.payload} writepoints = {self.writepoints}"
 
     def _generic_message(self, measurement, device, tail, payload):
         self.device = device
@@ -67,8 +67,13 @@ class MyUserdata:
     def mijia_message(self, device, tail, payload):
         self._generic_message("mijia", device, tail, payload)
 
+    def p1_message(self, device, tail, payload):
+        self._generic_message(
+            "p1", device, tail, payload
+        )  # p1 E0036004306971818 tele/SENSOR json{}
+
     def on_message(self, client, userdata, msg):
-        """ Handle message passed on from on_message callback.
+        """Handle message passed on from on_message callback.
 
         Same parameters as normal mqtt on_message callback.
 
@@ -86,6 +91,8 @@ class MyUserdata:
             self.zigbee2mqtt_message(device, tail, payload)
         elif route == "mijia":
             self.mijia_message(device, tail, payload)
+        elif route == "p1-mqtt":
+            self.p1_message(device, tail, payload)
         else:
             raise (f"unhandled route {route}: {msg.topic} = {payload}")
 
@@ -98,7 +105,7 @@ def influx_init():
 
 
 def influx_connect():
-    """ Build a influx to InfluxDB """
+    """Build a influx to InfluxDB"""
     influx = InfluxDBClient(
         INFLUXDB_ADDRESS, 8086, INFLUXDB_USER, INFLUXDB_PASSWORD, None
     )
@@ -106,7 +113,7 @@ def influx_connect():
 
 
 def influx_setup_database(influx):
-    """ If our database does not exist, we make it """
+    """If our database does not exist, we make it"""
 
     # databases = [{'name': '_internal'}, {'name': 'home_db'}]
     databases = influx.get_list_database()
@@ -127,15 +134,8 @@ def influx_setup_database(influx):
     influx.switch_database(INFLUXDB_DATABASE)
 
 
-def on_log(client, userdata, level, buf):
-    """ mqtt log callback """
-    print(f"on_log: {userdata}")
-    if level in (mqtt.MQTT_LOG_ERR, mqtt.MQTT_LOG_WARNING):
-        print(f"on_log: {level} {buf}")
-
-
 def on_message(client, userdata, msg):
-    """ mqtt message callback """
+    """mqtt message callback"""
     userdata.on_message(client, userdata, msg)
 
 
@@ -144,6 +144,7 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("house/+/tele/SENSOR")
     client.subscribe("zigbee2mqtt/+/SENSOR")
     client.subscribe("mijia/+/SENSOR")
+    client.subscribe("p1-mqtt/+/tele/SENSOR")
 
 
 def main():
@@ -153,7 +154,6 @@ def main():
     mqtt_client = mqtt.Client(client_id=MQTT_CLIENT_ID, userdata=MyUserdata(influx))
     #    mqtt_client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
     mqtt_client.on_message = on_message
-    mqtt_client.on_log = on_log
     mqtt_client.on_connect = on_connect
 
     mqtt_client.connect(MQTT_ADDRESS, 1883)
