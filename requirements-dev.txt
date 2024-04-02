@@ -3,3 +3,4 @@ mypy
 black
 paho-mqtt
 influxdb
+pytest
